@@ -1,0 +1,5 @@
+vehicle     methods     min_compression_level     mean_compression_level     max_compression_level     low_one_byte_ratio     average_encoding_time(us)     average_decoding_time(us)     memory_footprint(byte)     
+3           TBDR-000    0                         22.58                      32                        10.243                 26.07                         23.03                         163357                     
+3           TBDR-001    16                        39.19                      48                        0.0                    16.35                         15.33                         85173                      
+3           TBDR-002    27                        48.01                      56                        0.0                    11.16                         9.6                           61829                      
+3           TBDR-003    12                        52.63                      60                        0.0                    9.75                          7.14                          298045                     
