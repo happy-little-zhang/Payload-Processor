@@ -1,9 +1,10 @@
 import hmac
 import hashlib
-from Crypto.Cipher import AES
 import sys
 import time
 
+secret_key = b'0123456789abcdef'
+minimum_mac_len = 20
 
 # 全局变量，文件路径
 file_paths = [
@@ -13,7 +14,18 @@ file_paths = [
     #"dataset/survival/Soul/attack_free.csv",      # vehicle repeat with can_intrusion
     "dataset/survival/Spark/attack_free.csv",
     "dataset/VTC2019Fall/clean/attack_free.csv",
+    "dataset/can_intrusion_v2/data/OpelAstra/attack_free.csv",
+    "dataset/can_intrusion_v2/data/RenaultClio/attack_free.csv",
+    "dataset/can_signal/attack_free.csv",
+    "dataset/ReCAN/C-1-AlfaRomeo-Giulia/Exp-1/attack_free.csv",
+    "dataset/ReCAN/C-2-Opel-Corsa/Exp-1/attack_free.csv",
+    "dataset/ReCAN/T-1-Mitsubishi-FusoCanter/Exp-1/attack_free.csv",
+    "dataset/ReCAN/T-2-Isuzu-M55/Exp-1/attack_free.csv",
+    "dataset/ReCAN/T-3-Piaggio-PorterMaxi/Exp-1/attack_free.csv",
+    "dataset/car_hacking_challenge/0_Preliminary/0_Training/attack_free.csv",
+    "dataset/heavy_duty_truck/part_1/attack_free.csv",
     "dataset/self_collection/001.csv",
+    "dataset/road/ambient/attack_free.csv",
     "dataset/can_train_and_test/2011-chevrolet-impala/attack_free.csv",
     "dataset/can_train_and_test/2011-chevrolet-traverse/attack_free.csv",
     "dataset/can_train_and_test/2016-chevrolet-silverado/attack_free.csv",
@@ -28,7 +40,18 @@ vehicle_names = [
     #"Kia Soul",              # vehicle repeat with can_intrusion
     "Chevrolet Spark",
     "Volvo V40",
+    "Opel Astra",
+    "Renault Clio",
+    "Unknown 1",
+    "Alfa Romeo Giulia Veloce",
+    "Opel Corsa",
+    "Mitsubishi Fuso Canter",
+    "Isuzu M55",
+    "Piaggio Porter Maxi",
+    "Hyundai Avante CN7",
+    "Renault T520 6X2",
     "Yutong Xiaoyu",
+    "Unknown 2",
     "Chevrolet Impala",
     "Chevrolet Traverse",
     "Chevrolet Silverado",
@@ -37,15 +60,16 @@ vehicle_names = [
 
 # 全局变量，统计属性 mpn: models_performance_names
 performance_names = [
-    "vehicle",
-    "methods",
-    "min_compression",
-    "mean_compression",
-    "max_compression",
-    "low_one_byte_ratio",
-    "encoding_time(us)",
-    "decoding_time(us)",
-    "memory(byte)"
+    "Vehicle",
+    "Methods",
+    "min",
+    "mean",
+    "max",
+    "Pcll",             # proportion of compression lower limit
+    "Enc(us)",          # encoding time
+    "Dec(us)",          # decoding time
+    "error(%)",         # error_ratio
+    "Mem(KB)"           # memory
 ]
 
 
@@ -67,6 +91,7 @@ def get_total_size(obj, seen=None):
         size += sum([get_total_size(i, seen) for i in obj])
     return size
 
+
 def hmac_can_message(key, can_message):
     """
     使用 HMAC 算法计算 CAN 报文的认证标签
@@ -81,36 +106,10 @@ def hmac_can_message(key, can_message):
     # 计算 HMAC 值
     hmac_value = hmac.new(key, can_message, hashlib.sha256).digest()
 
-    # 取前 4 字节作为认证标签
-    auth_tag = hmac_value[:4]
+    # 转换为十六进制字符串
+    auth_tag = hmac_value.hex()
 
     return auth_tag
-
-
-def cmac(key, message):
-    """
-    CMAC-AES 算法实现
-    :param key: 16字节的密钥
-    :param message: 输入消息
-    :return: CMAC 值
-    """
-
-    block_size = 16  # AES 块大小为 16 字节
-    cipher = AES.new(key, AES.MODE_ECB)
-
-    # 计算 K1 和 K2
-    l = cipher.encrypt(b'\x00' * block_size)
-    k1 = _double(l)
-    k2 = _double(k1)
-
-    # 将 8 字节的 CAN 报文填充到 16 字节
-    message_bytes = message + b'\x80' + b'\x00' * (block_size - len(message) - 1)
-
-    # 计算 CMAC
-    last_block = _xor(message_bytes, k1)
-    cmac = cipher.encrypt(last_block)
-
-    return cmac
 
 
 def _double(block):

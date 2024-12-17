@@ -4,6 +4,7 @@ import seaborn as sns
 import pandas as pd
 import os
 import re
+from datetime import datetime
 
 # 将car_hacking正常驾驶数据集从txt转换成csv
 def car_hacking_dataset_transform():
@@ -285,6 +286,434 @@ def vtc2019fall_dataset_transform():
     data.to_csv(save_path, index=False, header=False)
 
 
+def can_intrusion_v2_dataset_transform():
+    read_path = "dataset/can_intrusion_v2/data/"
+    file_paths = os.listdir(read_path)
+
+    for file_path in file_paths:
+
+        file_names = os.path.join(read_path, file_path)
+        file_names = os.listdir(file_names)
+        #print(file_names)
+
+        # 遍历每个文件名
+        for file_name in file_names:
+            pattern = r'training.log'
+
+            # 判断文件名是否匹配统一格式
+            if re.match(pattern, file_name):
+                dataset_path = os.path.join(read_path, file_path, file_name)
+
+                print(f"dataset_path: {dataset_path}")
+
+                csv_save_file = "attack_free.csv"
+                save_path = os.path.join(read_path, file_path, csv_save_file)
+                print(f"save_path: {save_path}")
+
+                # 读取文件
+                with open(dataset_path, 'r') as file:
+                    data_str = file.read()
+
+                # 初始化空列表,用于存储数据
+                timestamps = []
+                ids = []
+                dlcs = []
+                payloads = []
+
+                # 按行分割数据
+                lines = data_str.strip().split('\n')
+
+                # 遍历每一行,提取数据
+                for line in lines:  # 第一行为属性，不需要
+                #for line in lines[1:]:  # 第一行为属性，不需要
+                    #print(line)
+
+                    line_value = line.split()
+                    #print(line_value)
+
+                    # 提取时间戳，单位转化为us
+                    timestamp = int(float(line_value[0].strip('()')) * 1000000)
+
+                    id_payload_str = line_value[2].split('#')
+
+                    if len(id_payload_str) == 2:
+
+                        # 提取 ID
+                        id_str = id_payload_str[0]
+
+                        # 提取 Payload 并填充为 8 个字节
+                        payload_str = id_payload_str[1]
+
+                        # 将字符串拆分为每两个字符一组
+                        bytes_list = [payload_str[i:i + 2] for i in range(0, len(payload_str), 2)]
+
+                        # 计算 DLC
+                        dlc = len(bytes_list)
+                        payload_bytes = None
+                        if dlc < 8:
+                            payload_bytes = bytes_list + ["00"] * (8 - dlc)  # 填充为 8 个字节
+                        else:
+                            payload_bytes = bytes_list
+                        payload_hex = ' '.join(byte for byte in payload_bytes)
+
+                        #print(f"timestamps: {timestamp}, id: {id_str}, dlc: {dlc}, payload: {payload_hex}")
+                        timestamps.append(timestamp)
+                        ids.append(id_str)
+                        dlcs.append(dlc)
+                        payloads.append(payload_hex)
+
+                # 创建 DataFrame
+                data = pd.DataFrame({
+                    'Timestamp': timestamps,
+                    'ID': ids,
+                    'Payload': payloads
+                })
+
+                # 保存为 CSV 文件
+                data.to_csv(save_path, index=False, header=False)
+
+
+def can_signal_dataset_transform():
+    read_path = "dataset/can_signal/"
+    file_name = "01_candump.txt"
+    dataset_path = os.path.join(read_path, file_name)
+    print(f"read path: {dataset_path}")
+
+    csv_save_file = "attack_free.csv"
+    save_path = os.path.join(read_path, csv_save_file)
+    print(f"save_path: {save_path}")
+
+    # 读取 TXT 文件
+    with open(dataset_path, 'r') as file:
+        data_str = file.read()
+
+    # 初始化空列表,用于存储数据
+    timestamps = []
+    ids = []
+    dlcs = []
+    payloads = []
+
+    # 按行分割数据
+    lines = data_str.strip().split('\n')
+
+    # 遍历每一行(第一行为属性，去除),提取数据
+    for line in lines[1:]:
+        #print(line)
+
+        line_value = line.split()
+
+        # 提取时间戳，单位转化为us
+        timestamp = int(float(line_value[0]) * 1000000)
+        timestamps.append(timestamp)
+
+        # 提取 ID
+        id_str = line_value[1][2:]
+        ids.append(id_str)
+
+        # 提取 DLC
+        dlc = int(line_value[2])
+        dlcs.append(dlc)
+
+        # 提取 Payload 并填充为 8 个字节
+        payload_str = line_value[3:]
+        payload_bytes = payload_str + ["00"] * (8 - len(payload_str))  # 填充为 8 个字节
+        payload_hex = ' '.join(byte for byte in payload_bytes)
+        payloads.append(payload_hex)
+
+        #print(f"timestamps: {timestamp}, id: {id_str}, dlc: {dlc}, payload: {payload_hex}")
+
+    # 创建 DataFrame
+    data = pd.DataFrame({
+        'Timestamp': timestamps,
+        'ID': ids,
+        'Payload': payloads
+    })
+
+    # 保存为 CSV 文件
+    data.to_csv(save_path, index=False, header=False)
+
+
+def re_can_dataset_transform():
+    read_path = "dataset/ReCAN/"
+    file_paths = os.listdir(read_path)
+
+    for file_path in file_paths:
+
+        #file_names = os.path.join(read_path, file_path)
+        mid_path = "Exp-1"
+        file_names = os.path.join(read_path, file_path, mid_path)
+
+        file_names = os.listdir(file_names)
+        #print(file_names)
+
+        # 遍历每个文件名
+        for file_name in file_names:
+            pattern = r'raw.csv'
+
+            # 判断文件名是否匹配统一格式
+            if re.match(pattern, file_name):
+                dataset_path = os.path.join(read_path, file_path, mid_path, file_name)
+
+                print(f"dataset_path: {dataset_path}")
+
+                csv_save_file = "attack_free.csv"
+                save_path = os.path.join(read_path, file_path, mid_path, csv_save_file)
+                print(f"save_path: {save_path}")
+
+                # 读取文件
+                with open(dataset_path, 'r') as file:
+                    data_str = file.read()
+
+                # 初始化空列表,用于存储数据
+                timestamps = []
+                ids = []
+                dlcs = []
+                payloads = []
+
+                # 按行分割数据
+                lines = data_str.strip().split('\n')
+
+                # 遍历每一行,提取数据
+                for line in lines:  # 第一行为属性，不需要
+                    #print(line)
+
+                    line_value = line.split(',')
+                    #print(line_value)
+
+                    # 提取时间戳，单位转化为us
+                    timestamp = int(float(line_value[0]) * 1000000)
+
+                    # 提取 ID
+                    id_str = line_value[2]
+
+                    # 提取 Payload 并填充为 8 个字节
+                    payload_bin_str = line_value[4]
+                    payload_str = [hex(int(payload_bin_str[i:i + 8], 2))[2:].zfill(2) for i in range(0, len(payload_bin_str), 8)]
+                    #print(payload_str)
+                    bytes_list = payload_str
+
+                    # 计算 DLC
+                    dlc = len(bytes_list)
+                    payload_bytes = None
+                    if dlc < 8:
+                        payload_bytes = bytes_list + ["00"] * (8 - dlc)  # 填充为 8 个字节
+                    else:
+                        payload_bytes = bytes_list
+                    payload_hex = ' '.join(byte for byte in payload_bytes)
+
+                    #print(f"timestamps: {timestamp}, id: {id_str}, dlc: {dlc}, payload: {payload_hex}")
+                    timestamps.append(timestamp)
+                    ids.append(id_str)
+                    dlcs.append(dlc)
+                    payloads.append(payload_hex)
+
+                # 创建 DataFrame
+                data = pd.DataFrame({
+                    'Timestamp': timestamps,
+                    'ID': ids,
+                    'Payload': payloads
+                })
+
+                # 保存为 CSV 文件
+                data.to_csv(save_path, index=False, header=False)
+
+
+def car_hacking_challenge_dataset_transform():
+    read_path = "dataset/car_hacking_challenge/0_Preliminary/0_Training/"
+    file_name = "Pre_train_D_0.csv"
+    dataset_path = os.path.join(read_path, file_name)
+    print(f"read path: {dataset_path}")
+
+    csv_save_file = "attack_free.csv"
+    save_path = os.path.join(read_path, csv_save_file)
+    print(f"save_path: {save_path}")
+
+    # 读取 TXT 文件
+    with open(dataset_path, 'r') as file:
+        data_str = file.read()
+
+    # 初始化空列表,用于存储数据
+    timestamps = []
+    ids = []
+    dlcs = []
+    payloads = []
+
+    # 按行分割数据
+    lines = data_str.strip().split('\n')
+
+    # 遍历每一行,提取数据
+    for line in lines[1:]:
+        #print(line)
+
+        line_value = line.split(',')
+
+        # 提取时间戳，单位转化为us
+        timestamp = int(float(line_value[0]) * 1000000)
+        timestamps.append(timestamp)
+
+        # 提取 ID
+        id_str = line_value[1]
+        ids.append(id_str)
+
+        # 提取 DLC
+        dlc = int(line_value[2])
+        dlcs.append(dlc)
+
+        # 提取 Payload 并填充为 8 个字节
+        payload_str = line_value[3]
+        payload_str = payload_str.split()
+        payload_bytes = payload_str + ["00"] * (8 - len(payload_str))  # 填充为 8 个字节
+        payload_hex = ' '.join(byte for byte in payload_bytes)
+        payloads.append(payload_hex)
+        #print(f"timestamps: {timestamp}, id: {id_str}, dlc: {dlc}, payload: {payload_hex}")
+
+    # 创建 DataFrame
+    data = pd.DataFrame({
+        'Timestamp': timestamps,
+        'ID': ids,
+        'Payload': payloads
+    })
+
+    # 保存为 CSV 文件
+    data.to_csv(save_path, index=False, header=False)
+
+
+def heavy_duty_truck_dataset_transform():
+    read_path = "dataset/heavy_duty_truck/part_1/"
+    file_name = "20201123075441304067.csv"
+    dataset_path = os.path.join(read_path, file_name)
+    print(f"read path: {dataset_path}")
+
+    csv_save_file = "attack_free.csv"
+    save_path = os.path.join(read_path, csv_save_file)
+    print(f"save_path: {save_path}")
+
+    # 读取 TXT 文件
+    with open(dataset_path, 'r') as file:
+        data_str = file.read()
+
+    # 初始化空列表,用于存储数据
+    timestamps = []
+    ids = []
+    dlcs = []
+    payloads = []
+
+    # 按行分割数据
+    lines = data_str.strip().split('\n')
+
+    # 遍历每一行,提取数据
+    for line in lines[1:]:
+        #print(line)
+
+        line_value = line.split(';')
+
+        # 提取时间戳，单位转化为us
+        date_time_str = line_value[0]
+        date_time_obj = datetime.strptime(date_time_str, "%Y-%m-%d %H:%M:%S.%f")
+        timestamp = date_time_obj.timestamp()
+        timestamp = int(float(timestamp) * 1000000)
+        timestamps.append(timestamp)
+
+        # 提取 ID
+        id_str = line_value[1][2:]
+        ids.append(id_str)
+
+        # 提取 DLC
+        dlc = int(line_value[2])
+        dlcs.append(dlc)
+
+        # 提取 Payload 并填充为 8 个字节
+        payload_str = line_value[3:]
+        payload_str = [hex(int(payload_str[i], 10))[2:].zfill(2) for i in range(len(payload_str))]
+        payload_bytes = payload_str + ["00"] * (8 - len(payload_str))  # 填充为 8 个字节
+        payload_hex = ' '.join(byte for byte in payload_bytes)
+        payloads.append(payload_hex)
+        #print(f"timestamps: {timestamp}, id: {id_str}, dlc: {dlc}, payload: {payload_hex}")
+
+    # 创建 DataFrame
+    data = pd.DataFrame({
+        'Timestamp': timestamps,
+        'ID': ids,
+        'Payload': payloads
+    })
+
+    # 保存为 CSV 文件
+    data.to_csv(save_path, index=False, header=False)
+
+
+def road_dataset_transform():
+    read_path = "dataset/road/ambient/"
+    file_name = "ambient_highway_street_driving_long.log"
+    dataset_path = os.path.join(read_path, file_name)
+    print(f"read path: {dataset_path}")
+
+    csv_save_file = "attack_free.csv"
+    save_path = os.path.join(read_path, csv_save_file)
+    print(f"save_path: {save_path}")
+
+    # 读取 TXT 文件
+    with open(dataset_path, 'r') as file:
+        data_str = file.read()
+
+    # 初始化空列表,用于存储数据
+    timestamps = []
+    ids = []
+    dlcs = []
+    payloads = []
+
+    # 按行分割数据
+    lines = data_str.strip().split('\n')
+
+    # 遍历每一行,提取数据
+    for line in lines:
+        #print(line)
+
+        line_value = line.split()
+        # print(line_value)
+
+        # 提取时间戳，单位转化为us
+        timestamp = int(float(line_value[0].strip('()')) * 1000000)
+
+        id_payload_str = line_value[2].split('#')
+
+        if len(id_payload_str) == 2:
+
+            # 提取 ID
+            id_str = id_payload_str[0]
+
+            # 提取 Payload 并填充为 8 个字节
+            payload_str = id_payload_str[1]
+
+            # 将字符串拆分为每两个字符一组
+            bytes_list = [payload_str[i:i + 2] for i in range(0, len(payload_str), 2)]
+
+            # 计算 DLC
+            dlc = len(bytes_list)
+            payload_bytes = None
+            if dlc < 8:
+                payload_bytes = bytes_list + ["00"] * (8 - dlc)  # 填充为 8 个字节
+            else:
+                payload_bytes = bytes_list
+            payload_hex = ' '.join(byte for byte in payload_bytes)
+
+            #print(f"timestamps: {timestamp}, id: {id_str}, dlc: {dlc}, payload: {payload_hex}")
+            timestamps.append(timestamp)
+            ids.append(id_str)
+            dlcs.append(dlc)
+            payloads.append(payload_hex)
+
+
+    # 创建 DataFrame
+    data = pd.DataFrame({
+        'Timestamp': timestamps,
+        'ID': ids,
+        'Payload': payloads
+    })
+
+    # 保存为 CSV 文件
+    data.to_csv(save_path, index=False, header=False)
+
+
 def can_train_and_test_dataset_transform():
     read_path = "dataset/can_train_and_test/"
     file_paths = os.listdir(read_path)
@@ -367,11 +796,18 @@ def can_train_and_test_dataset_transform():
                 data.to_csv(save_path, index=False, header=False)
 
 def main():
-    # car_hacking_dataset_transform()        # 将car_hacking正常驾驶数据集从txt转换成csv
-    # can_intrusion_dataset_transform()      # 将can_intrusion正常驾驶数据集从txt转换成csv
-    # survival_dataset_transform()           # 将survival正常驾驶数据集从txt转换成csv
-    # vtc2019fall_dataset_transform()        # 将vtc2019fall正常驾驶数据集从txt转换成csv
-    can_train_and_test_dataset_transform()   # 将can_train_and_test正常驾驶数据集转换成统一csv格式
+    # car_hacking_dataset_transform()          # 将car_hacking正常驾驶数据集从txt转换成csv
+    # can_intrusion_dataset_transform()        # 将can_intrusion正常驾驶数据集从txt转换成csv
+    # survival_dataset_transform()             # 将survival正常驾驶数据集从txt转换成csv
+    # vtc2019fall_dataset_transform()          # 将vtc2019fall正常驾驶数据集从txt转换成csv
+    # can_intrusion_v2_dataset_transform()     # 将can_intrusion_v2正常驾驶数据集从txt转换成csv
+    # can_signal_dataset_transform()           # 将can_signal正常驾驶数据集从txt转换成csv
+    # re_can_dataset_transform()                 # 将re_can正常驾驶数据集从txt转换成csv
+    # car_hacking_challenge_dataset_transform()    # 将car_hacking_challenge正常驾驶数据集从txt转换成csv
+    # heavy_duty_truck_dataset_transform()       # 将heavy_duty_truck正常驾驶数据集从txt转换成csv
+    road_dataset_transform()                    # 将road正常驾驶数据集从txt转换成csv
+    # can_train_and_test_dataset_transform()    # 将can_train_and_test正常驾驶数据集转换成统一csv格式
+
 
 if __name__ == '__main__':
     main()
